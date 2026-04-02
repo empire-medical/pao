@@ -24,11 +24,6 @@
         "symfony/process": "^7.4.5 || ^8.0.8",
         "symfony/var-dumper": "^7.4.6 || ^8.0.8"
     },
-    "conflict": {
-        "nunomaduro/collision": "<8.0",
-        "phpunit/phpunit": "<12.5.14 || >=13.0.0 <13.0.5 || >=14.0",
-        "pestphp/pest": ">=6.0"
-    },
     "autoload": {
         "files": [
             "src/Autoload.php"
