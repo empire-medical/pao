@@ -44,8 +44,16 @@ final class Plugin implements AddsOutput, HandlesArguments, Terminable
         $arguments = $execution->ensureJunitLog($arguments);
 
         if (! in_array('--parallel', $arguments, true)) {
-            $arguments[] = '--extension';
-            $arguments[] = Extension::class;
+            // PHPUnit 12+ supports --extension CLI arg; PHPUnit 10-11 do not.
+            // For older versions, register the subscriber directly on the event facade. -- Claude
+            if ($this->phpunitSupportsExtensionArg()) {
+                $arguments[] = '--extension';
+                $arguments[] = Extension::class;
+            } else {
+                \PHPUnit\Event\Facade::instance()->registerSubscriber(
+                    new \Pao\Drivers\Phpunit\Subscribers\TestRunnerFinishedSubscriber,
+                );
+            }
         }
 
         return $arguments;
@@ -95,5 +103,14 @@ final class Plugin implements AddsOutput, HandlesArguments, Terminable
         $this->output->writeln(json_encode($this->result, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 
         $this->result = null;
+    }
+
+    private function phpunitSupportsExtensionArg(): bool
+    {
+        if (! class_exists(\PHPUnit\Runner\Version::class)) {
+            return false;
+        }
+
+        return version_compare(\PHPUnit\Runner\Version::id(), '12.0.0', '>=');
     }
 }

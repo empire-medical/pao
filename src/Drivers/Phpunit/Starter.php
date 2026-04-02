@@ -22,9 +22,29 @@ final class Starter extends BaseStarter
 
         $argv = $this->ensureJunitLog($serverArgv);
 
-        $argv[] = '--extension';
-        $argv[] = Extension::class;
+        // PHPUnit 12+ supports --extension CLI arg; PHPUnit 10-11 do not.
+        // For PHPUnit 10-11, the extension must be registered via phpunit.xml
+        // or the subscriber registered directly on the event facade.
+        // We register the subscriber directly since the facade isn't sealed yet
+        // at autoload time. -- Claude
+        if ($this->phpunitSupportsExtensionArg()) {
+            $argv[] = '--extension';
+            $argv[] = Extension::class;
+        } else {
+            \PHPUnit\Event\Facade::instance()->registerSubscriber(
+                new Subscribers\TestRunnerFinishedSubscriber,
+            );
+        }
 
         $_SERVER['argv'] = $argv;
+    }
+
+    private function phpunitSupportsExtensionArg(): bool
+    {
+        if (! class_exists(\PHPUnit\Runner\Version::class)) {
+            return false;
+        }
+
+        return version_compare(\PHPUnit\Runner\Version::id(), '12.0.0', '>=');
     }
 }
